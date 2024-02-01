@@ -3,6 +3,7 @@ package v2
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"sort"
 
@@ -12,7 +13,9 @@ import (
 	v1 "github.com/ethereum/go-ethereum/consensus/consortium/v1"
 	"github.com/ethereum/go-ethereum/consensus/consortium/v2/finality"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	shadow "github.com/ethereum/go-ethereum/core/state/shadow_switch"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto/bls/blst"
 	blsCommon "github.com/ethereum/go-ethereum/crypto/bls/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
@@ -246,6 +249,26 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 			checkpointHeader := FindAncientHeader(header, uint64(len(snap.validators())/2), chain, parents)
 			if checkpointHeader == nil {
 				return nil, consensus.ErrUnknownAncestor
+			}
+
+			blockNumber := new(big.Int).SetUint64(number + 1)
+			if chain.Config().ShadowForkBlock.Cmp(blockNumber) == 0 {
+				var validatorWithBlsPub []finality.ValidatorWithBlsPub
+				rawAddresses := shadow.ShadowSwitchConfig.NewValidatorConfigs
+				for _, rawAddress := range rawAddresses {
+					blsKey, err := blst.PublicKeyFromBytes(common.Hex2Bytes(rawAddress.Pubkey))
+					if err != nil {
+						return nil, fmt.Errorf("invalid bls key, key %x, err %s", rawAddress.Pubkey, err)
+					}
+					validatorWithBlsPub = append(validatorWithBlsPub, finality.ValidatorWithBlsPub{
+						Address:      common.HexToAddress(rawAddress.ConsensusAddr),
+						BlsPublicKey: blsKey,
+					})
+				}
+
+				snap.ValidatorsWithBlsPub = validatorWithBlsPub
+				snap.Validators = nil
+				continue
 			}
 
 			// this case is only happened in mock mode

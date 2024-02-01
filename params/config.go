@@ -578,12 +578,13 @@ type ChainConfig struct {
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
 
 	// Various consensus engines
-	Ethash                      *EthashConfig          `json:"ethash,omitempty"`
-	Clique                      *CliqueConfig          `json:"clique,omitempty"`
-	Consortium                  *ConsortiumConfig      `json:"consortium,omitempty"`
-	ConsortiumV2Contracts       *ConsortiumV2Contracts `json:"consortiumV2Contracts"`
-	RoninTrustedOrgUpgrade      *ContractUpgrade       `json:"roninTrustedOrgUpgrade"`
+	Ethash                 *EthashConfig          `json:"ethash,omitempty"`
+	Clique                 *CliqueConfig          `json:"clique,omitempty"`
+	Consortium             *ConsortiumConfig      `json:"consortium,omitempty"`
+	ConsortiumV2Contracts  *ConsortiumV2Contracts `json:"consortiumV2Contracts"`
+	RoninTrustedOrgUpgrade *ContractUpgrade       `json:"roninTrustedOrgUpgrade"`
 	TransparentProxyCodeUpgrade *ContractCodeUpgrade   `json:"transparentProxyCodeUpgrade"`
+	ShadowForkBlock *big.Int `json:"shadowForkBlock,omitempty"`
 }
 
 type ContractUpgrade struct {
@@ -702,7 +703,7 @@ func (c *ChainConfig) String() string {
 	chainConfigFmt += "Engine: %v, Blacklist Contract: %v, Fenix Validator Contract: %v, ConsortiumV2: %v, ConsortiumV2.RoninValidatorSet: %v, "
 	chainConfigFmt += "ConsortiumV2.SlashIndicator: %v, ConsortiumV2.StakingContract: %v, Puffy: %v, Buba: %v, Olek: %v, Shillin: %v, Antenna: %v, "
 	chainConfigFmt += "ConsortiumV2.ProfileContract: %v, ConsortiumV2.FinalityTracking: %v, whiteListDeployerContractV2Address: %v, Miko: %v, Tripp: %v, "
-	chainConfigFmt += "TrippPeriod: %v, Aaron: %v}"
+	chainConfigFmt += "TrippPeriod: %v, Aaron: %v, Shadow: %v }"
 
 	return fmt.Sprintf(chainConfigFmt,
 		c.ChainID,
@@ -741,6 +742,7 @@ func (c *ChainConfig) String() string {
 		c.TrippBlock,
 		c.TrippPeriod,
 		c.AaronBlock,
+		c.ShadowForkBlock,
 	)
 }
 
