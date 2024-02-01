@@ -1,0 +1,81 @@
+validator_set_address: "0x54B3AC74a90E64E8dDE60671b6fE8F8DDf18eC9d"
+profile_address: "0x3b67c8D22a91572a6AB18acC9F70787Af04A4043"
+staking_address: "0x9C245671791834daf3885533D24dce516B763B28"
+trusted_org_address: "0x7507dc433a98E1fE105d69f19f3B40E4315A4F32"
+slash_indicator_address: "0xF7837778b6E180Df6696C8Fa986d62f8b6186752"
+validator_set_storage_slot:
+  candidateIds_slot: 115
+  candidate_index_slot: 116
+  candidate_info_slot: 117
+  validator_map_slot: 172
+  validatorIds_slot: 171
+  validator_count_slot: 170
+  validator_candidate_offset:
+    admin_offset: 0
+    consensus_addr_offset: 1
+    treasury_addr_offset: 2
+    commission_rate_offset: 4
+profile_storage_slot:
+  id2profile_slot: 0
+  registry_slot: 1
+  consensus2Id_slot: 2
+  candidate_profile_offset:
+    id_offset: 0
+    consensus_offset: 1
+    admin_offset: 2
+    treasury_offset: 3
+    governor_offset: 4
+    pubkey_offset: 5
+staking_storage_slot:
+  pool_detail_slot: 55
+  staking_pool_slot: 3
+  user_reward_slot: 2
+  admin_of_active_pool_mapping_slot: 58
+  pool_detail_offset:
+    pid_offset: 0
+    shadowed_pool_admin_offset: 1
+    staking_amount_offset: 2
+    staking_total_offset: 3
+    delegating_amount_offset: 4
+    last_delegating_timestamp_offset: 5
+  pool_fields_offset:
+    shares_inner_offset: 1
+    shares_last_period_offset: 2
+  user_reward_fields_offset:
+    lowest_amount_offset: 2
+    last_period_offset: 3
+trusted_org_slot:
+  consensus_list_slot: 9
+  governor_list_slot: 10
+  added_block_slot: 8
+  total_weight_slot: 3
+  consensus_weight_slot: 5
+  governor_weight_slot: 6
+slash_indicator_slot:
+  credit_score_slot: 220
+
+new_validator_configs:
+  - candidate_admin: "0x3922667f9dfA14f0F34222707018cd5a4D97AeFB"
+    consensus_addr: "0x6D863059CF618cC03d314cfbC41707105DD3BB3d"
+    treasury_addr: "0x3922667f9dfA14f0F34222707018cd5a4D97AeFB"
+    commission_rate: "1000"
+    pubkey: "b949e6e3fb327dc3a369f6a379fb92d8788ed99ce4d3d59ea8dce730bda291a0fb0a4097eded9a02acdc5e10d452a8a9"
+    governor_addr: "0x529502C69356E9f48C8D5427B030020941F9ef42"
+  - candidate_admin: "0x041Eff1FB8179131C15E4c6a54480334967a66A2"
+    consensus_addr: "0x412cA41498e0522f054ebBA32fCaf59C9e55F099"
+    treasury_addr: "0x041Eff1FB8179131C15E4c6a54480334967a66A2"
+    commission_rate: "1000"
+    pubkey: "86e4b390c2f0aebc7e4e9fc2ebc1d514bb48548d1ee5926662c41f6bb9ae93b23d2f5ba706e9cab14e3e7f468998c81c"
+    governor_addr: "0x85C5dBfadcBc36AeE39DD32365183c5E38A67E37"
+  - candidate_admin: "0x13c6f0780874cC24a942549487A5D194Df168BDA"
+    consensus_addr: "0x7CcE47da0E161BE6fA1c7D09A9d12986b03621A3"
+    treasury_addr: "0x13c6f0780874cC24a942549487A5D194Df168BDA"
+    commission_rate: "1000"
+    pubkey: "a9e0e6bcc0ce5128000c5cef2cf28f67f8fe37383c025fe993369ae8026c394fd351f40638c2669c98df6027a52e7c83"
+    governor_addr: "0x947AB99ad90302b5ec1840c9b5CF4205554C72af"
+
+
+# number of period of hardfork - 3
+last_period: 812  # (23492900 - 3 * 28800) / 28800
+# at block timestamp, at which before hardfork - 3 days
+last_delegating_timestamp: 1703919609

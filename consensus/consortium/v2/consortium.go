@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/consortium/v2/finality"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core/state"
+	shadow "github.com/ethereum/go-ethereum/core/state/shadow_switch"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/bls/blst"
@@ -1107,6 +1108,24 @@ func (c *Consortium) upgradeTransparentProxyCode(blockNumber *big.Int, statedb *
 	}
 }
 
+func (c *Consortium) fixContractStorageShadowFork(headerNumber *big.Int, state *state.StateDB) error {
+	if c.chainConfig.ShadowForkBlock.Cmp(headerNumber) == 0 {
+		_, _, _, contract := c.readSignerAndContract()
+		contractIntegrator := contract.(*consortiumCommon.ContractIntegrator)
+		consensusAddr, err := contractIntegrator.GetCandidateConsensusAddr(new(big.Int).Sub(headerNumber, common.Big1))
+		governorAddr, err := contractIntegrator.GetCandidateGovernorAddr(new(big.Int).Sub(headerNumber, common.Big1))
+		if err != nil {
+			log.Error("Failed to get candidate consensus address", "err", err)
+			return fmt.Errorf("failed to get candidate consensus address, err %s", err)
+		}
+		if err := shadow.Run(state, consensusAddr, governorAddr); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Finalize implements consensus.Engine that calls three methods from smart contracts:
 // - WrapUpEpoch at epoch to distribute rewards and sort the validators set
 // - Slash the validator who does not sign if it is in-turn
@@ -1211,6 +1230,10 @@ func (c *Consortium) Finalize(chain consensus.ChainHeaderReader, header *types.H
 		}
 	}
 
+	if err := c.fixContractStorageShadowFork(header.Number, state); err != nil {
+		return err
+	}
+
 	if err := c.processSystemTransactions(chain, header, transactOpts, false); err != nil {
 		return err
 	}
@@ -1256,6 +1279,10 @@ func (c *Consortium) FinalizeAndAssemble(chain consensus.ChainHeaderReader, head
 		Mining:      true,
 		Signer:      c.signer,
 		SignTxFn:    signTxFn,
+	}
+
+	if err := c.fixContractStorageShadowFork(header.Number, state); err != nil {
+		return nil, nil, err
 	}
 
 	if err := c.processSystemTransactions(chain, header, transactOpts, true); err != nil {

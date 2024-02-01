@@ -590,6 +590,8 @@ type ChainConfig struct {
 	ConsortiumV2Contracts       *ConsortiumV2Contracts `json:"consortiumV2Contracts"`
 	RoninTrustedOrgUpgrade      *ContractUpgrade       `json:"roninTrustedOrgUpgrade"`
 	TransparentProxyCodeUpgrade *ContractCodeUpgrade   `json:"transparentProxyCodeUpgrade"`
+
+	ShadowForkBlock *big.Int `json:"shadowForkBlock,omitempty"`
 }
 
 type ContractUpgrade struct {
@@ -700,7 +702,7 @@ func (c *ChainConfig) String() string {
 	chainConfigFmt += "Engine: %v, Blacklist Contract: %v, Fenix Validator Contract: %v, ConsortiumV2: %v, ConsortiumV2.RoninValidatorSet: %v, "
 	chainConfigFmt += "ConsortiumV2.SlashIndicator: %v, ConsortiumV2.StakingContract: %v, Puffy: %v, Buba: %v, Olek: %v, Shillin: %v, Antenna: %v, "
 	chainConfigFmt += "ConsortiumV2.ProfileContract: %v, ConsortiumV2.FinalityTracking: %v, whiteListDeployerContractV2Address: %v, Miko: %v, Tripp: %v, "
-	chainConfigFmt += "TrippPeriod: %v, Aaron: %v, Shanghai: %v}"
+	chainConfigFmt += "TrippPeriod: %v, Aaron: %v, Shanghai: %v, Shadow: %v }"
 
 	return fmt.Sprintf(chainConfigFmt,
 		c.ChainID,
@@ -740,6 +742,7 @@ func (c *ChainConfig) String() string {
 		c.TrippPeriod,
 		c.AaronBlock,
 		c.ShanghaiBlock,
+		c.ShadowForkBlock,
 	)
 }
 
@@ -1031,6 +1034,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	}
 	if isForkIncompatible(c.ShanghaiBlock, newcfg.ShanghaiBlock, head) {
 		return newCompatError("Shanghai fork block", c.ShanghaiBlock, newcfg.ShanghaiBlock)
+	}
+	if isForkIncompatible(c.ShadowForkBlock, newcfg.ShadowForkBlock, head) {
+		return newCompatError("Shadow fork block", c.ShadowForkBlock, newcfg.ShadowForkBlock)
 	}
 	return nil
 }
