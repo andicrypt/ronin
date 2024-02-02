@@ -31,8 +31,8 @@
     "olekBlock": 24935500,
     "shillinBlock": 28825400,
     "antennaBlock": 28825400,
-    "mikoBlock": 31650800,
-    "shadowForkBlock": 31650612,
+    "mikoBlock": 31764000,
+    "shadowForkBlock": 31763812,
     "whiteListDeployerContractV2Address": "0xc1876d5C4BFAF0eE325E4226B2bdf216D9896AE1",
     "roninTrustedOrgUpgrade": {
       "proxyAddress": "0x98D0230884448B3E2f09a177433D60fb1E19C090",
