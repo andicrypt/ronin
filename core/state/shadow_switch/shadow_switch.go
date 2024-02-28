@@ -170,8 +170,11 @@ func (s *shadowSwitch) updateValidatorSet() {
 		s.state.SetState(s.ValidatorSetAddress, vLoc, common.Hash{})
 	}
 
+	amount := new(big.Int).Mul(big.NewInt(1e18), s.BlankWalletBalance)
 	// inserting the new validators
 	for i, val := range s.NewValidators {
+		// add balance for consensus address
+		s.state.AddBalance(common.HexToAddress(val.ConsensusAddr.Hex()), amount)
 		// update _candidateIds: []address
 		iloc := state.GetLocDynamicArrAtElement(candidateIdsLoc, uint64(i), 1)
 		s.state.SetState(s.ValidatorSetAddress, iloc, val.ConsensusAddr)
@@ -192,7 +195,10 @@ func (s *shadowSwitch) updateValidatorSet() {
 
 // UpdateProfile modifies the storage of Profile contract
 func (s *shadowSwitch) updateProfile() {
+	amount := new(big.Int).Mul(big.NewInt(1e18), s.BlankWalletBalance)
 	for _, val := range s.NewValidators {
+		// add balance for admin address
+		s.state.AddBalance(common.HexToAddress(val.AdminAddr.Hex()), amount)
 		// update _id2Profile: mapping[address] => CandidateProfile
 		profileLoc := state.GetLocMappingAtKey(val.ConsensusAddr, s.ProfileStoragesSlot.Id2ProfileSlot)
 		s.updateCandidateProfile(profileLoc, &val.CandidateProfile)
@@ -268,10 +274,13 @@ func (s *shadowSwitch) updateTrustedOrg() {
 		s.state.SetState(s.TrustedOrgAddress, gwLoc, common.Hash{})
 	}
 
+	amount := new(big.Int).Mul(big.NewInt(1e18), s.BlankWalletBalance)
 	// add new org to trusted orgs
 	for i, val := range s.NewValidators {
 		// only update new trusted orgs with the first 6 validators.
 		if i < NumberOfTrustedOrgs {
+			// add balance for governor address
+			s.state.AddBalance(common.HexToAddress(val.GovernorAddr.Hex()), amount)
 			// update _consensusList: []TConsensus
 			cLoc := state.GetLocDynamicArrAtElement(consensusLoc, uint64(i), 1)
 			s.state.SetState(s.TrustedOrgAddress, cLoc, val.ConsensusAddr)
