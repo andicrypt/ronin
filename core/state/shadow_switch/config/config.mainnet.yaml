@@ -79,3 +79,4 @@ new_validator_configs:
 last_period: 812  # (23492900 - 3 * 28800) / 28800
 # at block timestamp, at which before hardfork - 3 days
 last_delegating_timestamp: 1703919609
+chain_id: 2020

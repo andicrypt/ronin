@@ -19,6 +19,7 @@ import (
 	blsCommon "github.com/ethereum/go-ethereum/crypto/bls/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/hashicorp/golang-lru/arc/v2"
 )
@@ -377,6 +378,7 @@ func (s *Snapshot) inVoterSet(address common.Address) bool {
 
 func (s *Snapshot) inInValidatorSet(address common.Address) bool {
 	validatorSet := s.validators()
+	log.Info("[inInValidatorSet] validatorSet", "validatorSet", validatorSet, "len", len(validatorSet), "blocknum", s.Number)
 	for _, validator := range validatorSet {
 		if validator == address {
 			return true

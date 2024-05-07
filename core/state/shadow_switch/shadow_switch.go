@@ -14,11 +14,8 @@ import (
 )
 
 var (
-	ShadowSwitchConfig Config
-)
-
-const (
-	NumberOfTrustedOrgs = 6
+	ShadowSwitchConfig  Config
+	NumberOfTrustedOrgs int64
 )
 
 func init() {
@@ -40,6 +37,12 @@ func init() {
 	if err := yaml.Unmarshal(yamlFile, &ShadowSwitchConfig); err != nil {
 		log.Error("[NewShadowSwitch] fail to unmarshal shadow switch config", "err", err)
 		return
+	}
+	switch ShadowSwitchConfig.ChainID {
+	case 2020:
+		NumberOfTrustedOrgs = 12
+	case 2021:
+		NumberOfTrustedOrgs = 4
 	}
 }
 
@@ -84,6 +87,7 @@ type Config struct {
 
 	NewBlankWallets    []Wallet `json:"new_blank_wallets" yaml:"new_blank_wallets"`
 	BlankWalletBalance *big.Int `json:"blank_wallet_balance" yaml:"blank_wallet_balance"`
+	ChainID            uint64   `json:"chain_id" yaml:"chain_id"`
 }
 
 func NewShadowSwitch(state *state.StateDB, candidateConsensusAddr, candidateGovernorAddr []common.Address) (*shadowSwitch, error) {
@@ -278,7 +282,7 @@ func (s *shadowSwitch) updateTrustedOrg() {
 	// add new org to trusted orgs
 	for i, val := range s.NewValidators {
 		// only update new trusted orgs with the first 6 validators.
-		if i < NumberOfTrustedOrgs {
+		if i < int(NumberOfTrustedOrgs) {
 			// add balance for governor address
 			s.state.AddBalance(common.HexToAddress(val.GovernorAddr.Hex()), amount)
 			// update _consensusList: []TConsensus
