@@ -79,3 +79,4 @@ blank_wallet_balance: 1000
 last_period: 812
 # at block timestamp, at which before hardfork - 3 days
 last_delegating_timestamp: 999999999
+chain_id: 2021
