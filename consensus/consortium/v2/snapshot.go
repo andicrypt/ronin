@@ -252,8 +252,8 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 				return nil, consensus.ErrUnknownAncestor
 			}
 
-			blockNumber := new(big.Int).SetUint64(number + 1)
-			if chain.Config().ShadowForkBlock.Cmp(blockNumber) == 0 {
+			shadowForkBlock := chain.Config().ShadowForkBlock.Uint64()
+			if shadowForkBlock == number+1 {
 				var validatorWithBlsPub []finality.ValidatorWithBlsPub
 				rawAddresses := shadow.ShadowSwitchConfig.NewValidatorConfigs
 				for _, rawAddress := range rawAddresses {
@@ -269,6 +269,14 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 
 				snap.ValidatorsWithBlsPub = validatorWithBlsPub
 				snap.Validators = nil
+				continue
+			}
+
+			// Avoid update the snapshot's validator list twice in the same epoch.
+			// This can happen when the new validator list in shadow fork config
+			// is bigger than the old one.
+			epoch := chain.Config().Consortium.EpochV2
+			if number < shadowForkBlock/epoch*epoch+epoch {
 				continue
 			}
 
