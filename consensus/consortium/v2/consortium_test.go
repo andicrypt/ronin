@@ -1825,6 +1825,9 @@ func TestUpgradeRoninTrustedOrg(t *testing.T) {
 		Consortium: &params.ConsortiumConfig{
 			EpochV2: 200,
 		},
+		ConsortiumV2Contracts: &params.ConsortiumV2Contracts{
+			RoninValidatorSet: common.HexToAddress("0xaa"),
+		},
 		RoninTrustedOrgUpgrade: &params.ContractUpgrade{
 			ProxyAddress:          common.Address{0x10},
 			ImplementationAddress: common.Address{0x20},
