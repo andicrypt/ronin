@@ -254,7 +254,8 @@ func (s londonSigner) Sender(tx *Transaction) (common.Address, error) {
 	// DynamicFee txs are defined to use 0 and 1 as their recovery
 	// id, add 27 to become equivalent to unprotected Homestead signatures.
 	V = new(big.Int).Add(V, big.NewInt(27))
-	if tx.ChainId().Cmp(s.chainId) != 0 {
+	secondChainId := new(big.Int).Mul(s.chainId, common.Big3)
+	if tx.ChainId().Cmp(s.chainId) != 0 && tx.ChainId().Cmp(secondChainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
 	return recoverPlain(s.Hash(tx), R, S, V, true)
@@ -272,7 +273,8 @@ func (s londonSigner) SignatureValues(tx *Transaction, sig []byte) (R, S, V *big
 	}
 	// Check that chain ID of tx matches the signer. We also accept ID zero here,
 	// because it indicates that the chain ID was not specified in the tx.
-	if txdata.ChainID.Sign() != 0 && txdata.ChainID.Cmp(s.chainId) != 0 {
+	secondChainId := new(big.Int).Mul(s.chainId, common.Big3)
+	if txdata.ChainID.Sign() != 0 && txdata.ChainID.Cmp(s.chainId) != 0 && txdata.ChainID.Cmp(secondChainId) != 0 {
 		return nil, nil, nil, ErrInvalidChainId
 	}
 	R, S, _ = decodeSignature(sig)
@@ -334,7 +336,8 @@ func (s eip2930Signer) Sender(tx *Transaction) (common.Address, error) {
 	default:
 		return common.Address{}, ErrTxTypeNotSupported
 	}
-	if tx.ChainId().Cmp(s.chainId) != 0 {
+	secondChainId := new(big.Int).Mul(s.chainId, common.Big3)
+	if tx.ChainId().Cmp(s.chainId) != 0 && tx.ChainId().Cmp(secondChainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
 	return recoverPlain(s.Hash(tx), R, S, V, true)
@@ -347,7 +350,8 @@ func (s eip2930Signer) SignatureValues(tx *Transaction, sig []byte) (R, S, V *bi
 	case *AccessListTx:
 		// Check that chain ID of tx matches the signer. We also accept ID zero here,
 		// because it indicates that the chain ID was not specified in the tx.
-		if txdata.ChainID.Sign() != 0 && txdata.ChainID.Cmp(s.chainId) != 0 {
+		secondChainId := new(big.Int).Mul(s.chainId, common.Big3)
+		if txdata.ChainID.Sign() != 0 && txdata.ChainID.Cmp(s.chainId) != 0 && txdata.ChainID.Cmp(secondChainId) != 0 {
 			return nil, nil, nil, ErrInvalidChainId
 		}
 		R, S, _ = decodeSignature(sig)
@@ -426,7 +430,8 @@ func (s MikoSigner) Sender(tx *Transaction) (common.Address, error) {
 	case LegacyTxType:
 		return s.EIP155Signer.Sender(tx)
 	case SponsoredTxType:
-		if tx.ChainId().Cmp(s.chainId) != 0 {
+		secondChainId := new(big.Int).Mul(s.chainId, common.Big3)
+		if tx.ChainId().Cmp(s.chainId) != 0 && tx.ChainId().Cmp(secondChainId) != 0 {
 			return common.Address{}, ErrInvalidChainId
 		}
 		// V in sponsored signature is {0, 1}, but the recoverPlain expects
@@ -548,13 +553,28 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	if !tx.Protected() {
 		return HomesteadSigner{}.Sender(tx)
 	}
-	if tx.ChainId().Cmp(s.chainId) != 0 {
+	secondChainId := new(big.Int).Mul(s.chainId, common.Big3)
+	if tx.ChainId().Cmp(s.chainId) != 0 && tx.ChainId().Cmp(secondChainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
 	V, R, S := tx.RawSignatureValues()
-	V = new(big.Int).Sub(V, s.chainIdMul)
-	V.Sub(V, big8)
-	return recoverPlain(s.Hash(tx), R, S, V, true)
+	// 12155 =  secondChainId * 2 + 35 (for mainnet)
+	// 12161 =  secondChainId * 2 + 35 (for testnet)
+	if V.Uint64() == secondChainId.Uint64() * 2 + 35 || V.Uint64() == secondChainId.Uint64() * 2 + 35 + 1 {
+		secondChainIdMul := new(big.Int).Mul(secondChainId, common.Big2)
+		V = new(big.Int).Sub(V, secondChainIdMul)
+		V.Sub(V, big8)
+	} else {
+		V = new(big.Int).Sub(V, s.chainIdMul)
+		V.Sub(V, big8)
+	}
+
+	addr, err := recoverPlain(s.Hash(tx), R, S, V, true)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return addr, nil
 }
 
 // SignatureValues returns signature values. This signature
@@ -574,6 +594,12 @@ func (s EIP155Signer) SignatureValues(tx *Transaction, sig []byte) (R, S, V *big
 // Hash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
 func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
+	var chainId *big.Int
+	if tx.ChainId().Cmp(big.NewInt(s.chainId.Int64()*3)) == 0{
+		chainId = tx.ChainId()
+	} else {
+		chainId = s.chainId
+	}
 	return rlpHash([]interface{}{
 		tx.Nonce(),
 		tx.GasPrice(),
@@ -581,7 +607,7 @@ func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
 		tx.To(),
 		tx.Value(),
 		tx.Data(),
-		s.chainId, uint(0), uint(0),
+		chainId, uint(0), uint(0),
 	})
 }
 
