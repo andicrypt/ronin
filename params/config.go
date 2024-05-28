@@ -578,11 +578,17 @@ type ChainConfig struct {
 	Consortium             *ConsortiumConfig      `json:"consortium,omitempty"`
 	ConsortiumV2Contracts  *ConsortiumV2Contracts `json:"consortiumV2Contracts"`
 	RoninTrustedOrgUpgrade *ContractUpgrade       `json:"roninTrustedOrgUpgrade"`
+	AxieProxyCodeUpgrade   *ContractCodeUpgrade   `json:"axieProxyCodeUpgrade"`
 }
 
 type ContractUpgrade struct {
 	ProxyAddress          common.Address `json:"proxyAddress"`
 	ImplementationAddress common.Address `json:"implementationAddress"`
+}
+
+type ContractCodeUpgrade struct {
+	CodeAddress common.Address `json:"contractAddress"`
+	Code        string         `json:"code"`
 }
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.

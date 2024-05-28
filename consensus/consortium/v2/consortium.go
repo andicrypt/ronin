@@ -391,7 +391,7 @@ func (c *Consortium) verifyCascadingFields(chain consensus.ChainHeaderReader, he
 		return consortiumCommon.ErrExtraValidators
 	}
 
-	if isTrippEffective{
+	if isTrippEffective {
 		if isEpoch && len(extraData.BlockProducers) == 0 {
 			return consortiumCommon.ErrExtraValidators
 		}
@@ -941,12 +941,23 @@ func (c *Consortium) processSystemTransactions(chain consensus.ChainHeaderReader
 }
 
 func (c *Consortium) upgradeRoninTrustedOrg(blockNumber *big.Int, state *state.StateDB) {
-	// The upgrade only happens in 1 block: Miko hardfork block
+	// The upgrade only happens once at Miko hardfork block
 	if c.chainConfig.MikoBlock != nil && c.chainConfig.MikoBlock.Cmp(blockNumber) == 0 {
 		state.SetState(
 			c.chainConfig.RoninTrustedOrgUpgrade.ProxyAddress,
 			implementationSlot,
 			c.chainConfig.RoninTrustedOrgUpgrade.ImplementationAddress.Hash(),
+		)
+	}
+}
+
+func (c *Consortium) upgradeAxieProxyCode(blockNumber *big.Int, statedb *state.StateDB) {
+	// The upgrade only happens once at Aaron hardfork block
+	if c.chainConfig.AaronBlock != nil && c.chainConfig.AaronBlock.Cmp(blockNumber) == 0 {
+		code := common.Hex2Bytes(c.chainConfig.AxieProxyCodeUpgrade.Code)
+		statedb.SetCode(
+			c.chainConfig.AxieProxyCodeUpgrade.CodeAddress,
+			code,
 		)
 	}
 }
@@ -1041,6 +1052,7 @@ func (c *Consortium) Finalize(chain consensus.ChainHeaderReader, header *types.H
 		return err
 	}
 	c.upgradeRoninTrustedOrg(header.Number, state)
+	c.upgradeAxieProxyCode(header.Number, state)
 	if len(*transactOpts.EVMContext.InternalTransactions) > 0 {
 		*internalTxs = append(*internalTxs, *transactOpts.EVMContext.InternalTransactions...)
 	}
@@ -1087,7 +1099,7 @@ func (c *Consortium) FinalizeAndAssemble(chain consensus.ChainHeaderReader, head
 		return nil, nil, err
 	}
 	c.upgradeRoninTrustedOrg(header.Number, state)
-
+	c.upgradeAxieProxyCode(header.Number, state)
 	// should not happen. Once happen, stop the node is better than broadcast the block
 	if header.GasLimit < header.GasUsed {
 		return nil, nil, errors.New("gas consumption of system txs exceed the gas limit")
@@ -1637,7 +1649,7 @@ func (c *Consortium) IsPeriodBlock(chain consensus.ChainHeaderReader, header *ty
 	if c.testTrippPeriod {
 		return true
 	}
-	
+
 	number := header.Number.Uint64()
 	if number%c.config.EpochV2 != 0 || !chain.Config().IsTripp(header.Number) {
 		return false
@@ -1659,7 +1671,7 @@ func (c *Consortium) IsPeriodBlock(chain consensus.ChainHeaderReader, header *ty
 
 // IsTrippEffective returns indicator whether the Tripp consensus rule is effective,
 // which is the first period that is greater than Tripp period, calculated by formula:
-// period := timestamp / dayInSeconds. 
+// period := timestamp / dayInSeconds.
 func (c *Consortium) IsTrippEffective(chain consensus.ChainHeaderReader, header *types.Header) bool {
 	if c.chainConfig.IsTripp(header.Number) {
 		if c.testTrippEffective {
