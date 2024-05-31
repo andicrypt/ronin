@@ -534,7 +534,7 @@ func TestExtraDataDecode(t *testing.T) {
 
 func mockExtraData(nVal int, bits uint32) *finality.HeaderExtraData {
 	var (
-		finalityVotedValidators finality.FinalityVoteBitSet
+		finalityVotedValidators finality.BitSet
 		aggregatedFinalityVotes blsCommon.Signature
 		checkpointValidators    []finality.ValidatorWithBlsPub
 		seal                    = make([]byte, finality.ExtraSeal)
@@ -547,7 +547,7 @@ func mockExtraData(nVal int, bits uint32) *finality.HeaderExtraData {
 			switch i {
 			case 0:
 				ret.HasFinalityVote = 1
-				finalityVotedValidators = finality.FinalityVoteBitSet(uint64(8))
+				finalityVotedValidators = finality.BitSet(uint64(8))
 				ret.FinalityVotedValidators = finalityVotedValidators
 
 				delegated, _ := blst.RandKey()
@@ -771,14 +771,14 @@ func TestVerifyFinalitySignature(t *testing.T) {
 	c.recents.Add(snap.Hash, snap)
 
 	header := types.Header{Number: big.NewInt(int64(blockNumber + 1)), ParentHash: blockHash}
-	var votedBitSet finality.FinalityVoteBitSet
+	var votedBitSet finality.BitSet
 	votedBitSet.SetBit(0)
 	err = c.verifyFinalitySignatures(nil, votedBitSet, nil, &header, nil)
 	if !errors.Is(err, finality.ErrNotEnoughFinalityVote) {
 		t.Errorf("Expect error %v have %v", finality.ErrNotEnoughFinalityVote, err)
 	}
 
-	votedBitSet = finality.FinalityVoteBitSet(0)
+	votedBitSet = finality.BitSet(0)
 	votedBitSet.SetBit(0)
 	votedBitSet.SetBit(1)
 	votedBitSet.SetBit(3)
@@ -787,7 +787,7 @@ func TestVerifyFinalitySignature(t *testing.T) {
 		t.Errorf("Expect error %v have %v", finality.ErrInvalidFinalityVotedBitSet, err)
 	}
 
-	votedBitSet = finality.FinalityVoteBitSet(0)
+	votedBitSet = finality.BitSet(0)
 	votedBitSet.SetBit(0)
 	votedBitSet.SetBit(1)
 	votedBitSet.SetBit(2)
@@ -801,7 +801,7 @@ func TestVerifyFinalitySignature(t *testing.T) {
 		t.Errorf("Expect error %v have %v", finality.ErrFinalitySignatureVerificationFailed, err)
 	}
 
-	votedBitSet = finality.FinalityVoteBitSet(0)
+	votedBitSet = finality.BitSet(0)
 	votedBitSet.SetBit(0)
 	votedBitSet.SetBit(1)
 	votedBitSet.SetBit(2)
@@ -816,7 +816,7 @@ func TestVerifyFinalitySignature(t *testing.T) {
 		t.Errorf("Expect error %v have %v", finality.ErrFinalitySignatureVerificationFailed, err)
 	}
 
-	votedBitSet = finality.FinalityVoteBitSet(0)
+	votedBitSet = finality.BitSet(0)
 	votedBitSet.SetBit(0)
 	votedBitSet.SetBit(1)
 	votedBitSet.SetBit(2)
@@ -885,7 +885,7 @@ func TestVerifyFinalitySignatureTripp(t *testing.T) {
 
 	header := types.Header{Number: big.NewInt(int64(blockNumber + 1)), ParentHash: blockHash}
 	// 1 voter with vote weight 6666 does not reach the threshold
-	votedBitSet := finality.FinalityVoteBitSet(0)
+	votedBitSet := finality.BitSet(0)
 	votedBitSet.SetBit(0)
 	aggregatedSignature := blst.AggregateSignatures([]blsCommon.Signature{
 		signature[0],
@@ -896,7 +896,7 @@ func TestVerifyFinalitySignatureTripp(t *testing.T) {
 	}
 
 	// 2 voters with total vote weight 3333 + 1 does not reach the threshold
-	votedBitSet = finality.FinalityVoteBitSet(0)
+	votedBitSet = finality.BitSet(0)
 	votedBitSet.SetBit(1)
 	votedBitSet.SetBit(2)
 	aggregatedSignature = blst.AggregateSignatures([]blsCommon.Signature{
@@ -909,7 +909,7 @@ func TestVerifyFinalitySignatureTripp(t *testing.T) {
 	}
 
 	// 2 voters with total vote weight 6666 + 1 reach the threshold
-	votedBitSet = finality.FinalityVoteBitSet(0)
+	votedBitSet = finality.BitSet(0)
 	votedBitSet.SetBit(0)
 	votedBitSet.SetBit(1)
 	aggregatedSignature = blst.AggregateSignatures([]blsCommon.Signature{
@@ -922,7 +922,7 @@ func TestVerifyFinalitySignatureTripp(t *testing.T) {
 	}
 
 	// All voters vote
-	votedBitSet = finality.FinalityVoteBitSet(0)
+	votedBitSet = finality.BitSet(0)
 	votedBitSet.SetBit(0)
 	votedBitSet.SetBit(1)
 	votedBitSet.SetBit(2)
@@ -1264,7 +1264,7 @@ func TestAssembleFinalityVote(t *testing.T) {
 		t.Fatal("Missing finality vote in header")
 	}
 
-	bitSet := finality.FinalityVoteBitSet(0)
+	bitSet := finality.BitSet(0)
 	for i := 0; i < 9; i++ {
 		bitSet.SetBit(i)
 	}
@@ -1393,7 +1393,7 @@ func TestAssembleFinalityVoteTripp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to decode extradata, err %s", err)
 	}
-	bitSet := finality.FinalityVoteBitSet(0)
+	bitSet := finality.BitSet(0)
 	bitSet.SetBit(0)
 	bitSet.SetBit(1)
 	if uint64(extraData.FinalityVotedValidators) != uint64(bitSet) {
@@ -1422,7 +1422,7 @@ func TestAssembleFinalityVoteTripp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to decode extradata, err %s", err)
 	}
-	bitSet = finality.FinalityVoteBitSet(0)
+	bitSet = finality.BitSet(0)
 	bitSet.SetBit(0)
 	if uint64(extraData.FinalityVotedValidators) != uint64(bitSet) {
 		t.Fatalf("Expect vote bit set to be %d, got %d", uint64(bitSet), uint64(extraData.FinalityVotedValidators))
@@ -1734,7 +1734,7 @@ func TestKnownBlockReorg(t *testing.T) {
 
 				var (
 					extra      finality.HeaderExtraData
-					voteBitset finality.FinalityVoteBitSet
+					voteBitset finality.BitSet
 					signatures []blsCommon.Signature
 				)
 				voteBitset.SetBit(0)
