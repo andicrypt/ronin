@@ -270,7 +270,7 @@ func (c *Consortium) VerifyVote(chain consensus.ChainHeaderReader, vote *types.V
 // verifyFinalitySignatures verifies the finality signatures in the block header
 func (c *Consortium) verifyFinalitySignatures(
 	chain consensus.ChainHeaderReader,
-	finalityVotedValidators finality.FinalityVoteBitSet,
+	finalityVotedValidators finality.BitSet,
 	finalitySignatures blsCommon.Signature,
 	header *types.Header,
 	parents []*types.Header,
@@ -1034,7 +1034,7 @@ func (c *Consortium) Finalize(chain consensus.ChainHeaderReader, header *types.H
 		// their amounts, check with stored data in header
 		if c.IsTrippEffective(chain, header) {
 			if c.chainConfig.IsAaron(header.Number) {
-				var blockProducersBitSet finality.FinalityVoteBitSet
+				var blockProducersBitSet finality.BitSet
 				for _, validator := range blockProducers {
 					for idx, candidate := range checkpointValidators {
 						if validator == candidate.Address {
@@ -1412,7 +1412,7 @@ func (c *Consortium) assembleFinalityVote(chain consensus.ChainHeaderReader, hea
 	if c.chainConfig.IsShillin(header.Number) {
 		var (
 			signatures              []blsCommon.Signature
-			finalityVotedValidators finality.FinalityVoteBitSet
+			finalityVotedValidators finality.BitSet
 			finalityThreshold       int
 			accumulatedVoteWeight   int
 		)
