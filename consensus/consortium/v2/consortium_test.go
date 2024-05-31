@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	mrand "math/rand"
 	"testing"
 	"time"
 
@@ -541,8 +542,8 @@ func mockExtraData(nVal int, bits uint32) *finality.HeaderExtraData {
 		ret                     = &finality.HeaderExtraData{}
 	)
 
-	bits = bits % 32
-	for i := 0; i < 5; i++ {
+	bits = bits % 64
+	for i := 0; i < 6; i++ {
 		if bits&(1<<i) != 0 {
 			switch i {
 			case 0:
@@ -585,6 +586,8 @@ func mockExtraData(nVal int, bits uint32) *finality.HeaderExtraData {
 					common.Address{0x22},
 					common.Address{0x33},
 				}
+			case 5:
+				ret.BlockProducersBitSet = finality.BitSet(mrand.Uint64())
 			}
 		}
 	}
@@ -670,6 +673,9 @@ func TestExtraDataDecodeRLP(t *testing.T) {
 		if !bytes.Equal(dec.Seal[:], ext.Seal[:]) {
 			t.Errorf("Mismatch decoded data")
 		}
+		if dec.BlockProducersBitSet != ext.BlockProducersBitSet {
+			t.Errorf("Mismatch decoded data")
+		}
 	}
 
 	_, err := finality.DecodeExtraRLP([]byte{})
@@ -681,44 +687,6 @@ func TestExtraDataDecodeRLP(t *testing.T) {
 	_, err = finality.DecodeExtraRLP(encodedData[:])
 	if !errors.Is(err, io.EOF) {
 		t.Fatalf("Expect error: %s, got: %s", io.EOF, err)
-	}
-}
-
-func BenchmarkEncodeRLP(b *testing.B) {
-	nVal := 22
-	ext := mockExtraData(nVal, 7)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		ext.EncodeRLP()
-	}
-}
-
-func BenchmarkEncode(b *testing.B) {
-	nVal := 22
-	ext := mockExtraData(nVal, 7)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		ext.Encode(true)
-	}
-}
-
-func BenchmarkDecodeRLP(b *testing.B) {
-	nVal := 22
-	ext := mockExtraData(nVal, 7)
-	dec, _ := ext.EncodeRLP()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		finality.DecodeExtraRLP(dec)
-	}
-}
-
-func BenchmarkDecode(b *testing.B) {
-	nVal := 22
-	ext := mockExtraData(nVal, 7)
-	dec := ext.Encode(true)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		finality.DecodeExtra(dec, true)
 	}
 }
 
