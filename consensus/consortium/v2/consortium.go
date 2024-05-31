@@ -407,7 +407,7 @@ func (c *Consortium) verifyCascadingFields(chain consensus.ChainHeaderReader, he
 		if isEpoch && len(extraData.CheckpointValidators) == 0 {
 			return consortiumCommon.ErrExtraValidators
 		}
-		if len(extraData.BlockProducers) != 0 {
+		if len(extraData.BlockProducers) != 0 || extraData.BlockProducersBitSet != 0 {
 			return consortiumCommon.ErrExtraValidators
 		}
 	}
