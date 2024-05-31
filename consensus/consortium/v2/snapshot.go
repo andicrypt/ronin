@@ -276,7 +276,7 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 			// This can happen when the new validator list in shadow fork config
 			// is bigger than the old one.
 			epoch := chain.Config().Consortium.EpochV2
-			if number < shadowForkBlock/epoch*epoch+epoch {
+			if s.chainConfig.IsShadow(big.NewInt(int64(number))) && number < shadowForkBlock/epoch*epoch+epoch {
 				continue
 			}
 
