@@ -176,6 +176,7 @@ type HeaderExtraData struct {
 	AggregatedFinalityVotes blsCommon.Signature   // aggregated BLS signatures for finality vote
 	CheckpointValidators    []ValidatorWithBlsPub // validator addresses and BLS public key updated at period block
 	BlockProducers          []common.Address      // block producer addresses updated at epoch block
+	BlockProducersBitSet    FinalityVoteBitSet    // the bit set of validators that can produce blocks
 	Seal                    [ExtraSeal]byte       // the sealing block signature
 }
 
@@ -278,6 +279,7 @@ type extraDataRLP struct {
 	AggregatedFinalityVotes []byte
 	CheckpointValidators    []validatorWithBlsPubRLP
 	BlockProducers          []common.Address
+	BlockProducersBitSet    FinalityVoteBitSet
 }
 
 type validatorWithBlsPubRLP struct {
@@ -315,6 +317,7 @@ func (extraData *HeaderExtraData) EncodeRLP() ([]byte, error) {
 	}
 	ext.CheckpointValidators = cp
 	ext.BlockProducers = extraData.BlockProducers
+	ext.BlockProducersBitSet = extraData.BlockProducersBitSet
 
 	enc, err := rlp.EncodeToBytes(ext)
 	if err != nil {
@@ -354,6 +357,7 @@ func DecodeExtraRLP(enc []byte) (*HeaderExtraData, error) {
 	}
 	ret.CheckpointValidators = cp
 	ret.BlockProducers = dec.BlockProducers
+	ret.BlockProducersBitSet = dec.BlockProducersBitSet
 
 	if len(dec.AggregatedFinalityVotes) != 0 && len(dec.FinalityVotedValidators.Indices()) != 0 {
 		ret.HasFinalityVote = 1

@@ -387,14 +387,19 @@ func (c *Consortium) verifyCascadingFields(chain consensus.ChainHeaderReader, he
 	// Check extra data
 	isEpoch := number%c.config.EpochV2 == 0 || c.chainConfig.IsOnConsortiumV2(header.Number)
 
-	if !isEpoch && (len(extraData.CheckpointValidators) != 0 || len(extraData.BlockProducers) != 0) {
+	if !isEpoch && (len(extraData.CheckpointValidators) != 0 || len(extraData.BlockProducers) != 0 || extraData.BlockProducersBitSet != 0) {
 		return consortiumCommon.ErrExtraValidators
 	}
 
 	if isTrippEffective {
-		if isEpoch && len(extraData.BlockProducers) == 0 {
+		if c.chainConfig.IsAaron(header.Number) {
+			if isEpoch && (extraData.BlockProducersBitSet == 0 || len(extraData.BlockProducers) != 0) {
+				return consortiumCommon.ErrExtraValidators
+			}
+		} else if isEpoch && (extraData.BlockProducersBitSet != 0 || len(extraData.BlockProducers) == 0) {
 			return consortiumCommon.ErrExtraValidators
 		}
+
 		if c.IsPeriodBlock(chain, header) && len(extraData.CheckpointValidators) == 0 {
 			return consortiumCommon.ErrExtraValidators
 		}
@@ -723,7 +728,10 @@ func (c *Consortium) getCheckpointValidatorsFromContract(
 	var checkpointValidators []finality.ValidatorWithBlsPub
 
 	if c.IsTrippEffective(chain, header) {
-		sort.Sort(validatorsAscending(blockProducers))
+		isAaron := c.chainConfig.IsAaron(header.Number)
+		if !isAaron {
+			sort.Sort(validatorsAscending(blockProducers))
+		}
 		if !c.IsPeriodBlock(chain, header) {
 			return nil, blockProducers, nil
 		}
@@ -734,6 +742,14 @@ func (c *Consortium) getCheckpointValidatorsFromContract(
 		if len(validatorCandidates) > MaxValidatorCandidates {
 			validatorCandidates = validatorCandidates[:MaxValidatorCandidates]
 		}
+
+		// After Aaron, bit set is used, it is necessary to keep
+		// the validator candidate list in a ascending order, which
+		// enable block producer list to be consistent after reconstruction.
+		if isAaron {
+			sort.Sort(validatorsAscending(validatorCandidates))
+		}
+
 		stakedAmounts, err := c.contract.GetStakedAmount(parentHash, parentBlockNumber, validatorCandidates)
 		if err != nil {
 			return nil, nil, err
@@ -812,7 +828,7 @@ func (c *Consortium) Prepare(chain consensus.ChainHeaderReader, header *types.He
 	var extraData finality.HeaderExtraData
 
 	if number%c.config.EpochV2 == 0 || c.chainConfig.IsOnConsortiumV2(big.NewInt(int64(number))) {
-		checkpointValidator, blockProducers, err := c.getCheckpointValidatorsFromContract(chain, header)
+		checkpointValidators, blockProducers, err := c.getCheckpointValidatorsFromContract(chain, header)
 		if err != nil {
 			return err
 		}
@@ -821,11 +837,24 @@ func (c *Consortium) Prepare(chain consensus.ChainHeaderReader, header *types.He
 		// at the start of every epoch.
 		if c.IsTrippEffective(chain, header) {
 			if c.IsPeriodBlock(chain, header) {
-				extraData.CheckpointValidators = checkpointValidator
+				extraData.CheckpointValidators = checkpointValidators
 			}
-			extraData.BlockProducers = blockProducers
+			// After Aaron, to reduce memory to store block producer list
+			// in header, block producer bit set is constructed to store the
+			// indices of block producer in validator candidate lists.
+			if c.chainConfig.IsAaron(header.Number) {
+				for _, validator := range blockProducers {
+					for idx, candidate := range checkpointValidators {
+						if validator == candidate.Address {
+							extraData.BlockProducersBitSet.SetBit(idx)
+						}
+					}
+				}
+			} else {
+				extraData.BlockProducers = blockProducers
+			}
 		} else {
-			extraData.CheckpointValidators = checkpointValidator
+			extraData.CheckpointValidators = checkpointValidators
 		}
 	}
 
@@ -1004,12 +1033,26 @@ func (c *Consortium) Finalize(chain consensus.ChainHeaderReader, header *types.H
 		// If isTripp and new period, read all validator candidates and
 		// their amounts, check with stored data in header
 		if c.IsTrippEffective(chain, header) {
-			if len(blockProducers) != len(extraData.BlockProducers) {
-				return errMismatchingValidators
-			}
-			for i := range blockProducers {
-				if blockProducers[i] != extraData.BlockProducers[i] {
+			if c.chainConfig.IsAaron(header.Number) {
+				var blockProducersBitSet finality.FinalityVoteBitSet
+				for _, validator := range blockProducers {
+					for idx, candidate := range checkpointValidators {
+						if validator == candidate.Address {
+							blockProducersBitSet.SetBit(idx)
+						}
+					}
+				}
+				if blockProducersBitSet != extraData.BlockProducersBitSet {
 					return errMismatchingValidators
+				}
+			} else {
+				if len(blockProducers) != len(extraData.BlockProducers) {
+					return errMismatchingValidators
+				}
+				for i := range blockProducers {
+					if blockProducers[i] != extraData.BlockProducers[i] {
+						return errMismatchingValidators
+					}
 				}
 			}
 			if c.IsPeriodBlock(chain, header) {
