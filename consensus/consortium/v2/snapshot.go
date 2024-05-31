@@ -39,7 +39,6 @@ type Snapshot struct {
 	// After Tripp, block producers are stored separately in a new field BlockProducers,
 	// differentiating from validator candidates, which are stored in ValidatorsWithBlsPub.
 	BlockProducers       []common.Address            `json:"blockProducers,omitempty"`       // Array of sorted block producers After Tripp.
-	BlockProducersBitSet finality.FinalityVoteBitSet `json:"blockProducersBitSet,omitempty"` // The bit set of validators that can produce blocks
 	JustifiedBlockNumber uint64                      `json:"justifiedBlockNumber,omitempty"` // The justified block number
 	JustifiedBlockHash   common.Hash                 `json:"justifiedBlockHash,omitempty"`   // The justified block hash
 	CurrentPeriod        uint64                      `json:"currentPeriod,omitempty"`        // Period number where the snapshot was created
@@ -154,10 +153,6 @@ func (s *Snapshot) copy() *Snapshot {
 		copy(cpy.BlockProducers, s.BlockProducers)
 	}
 
-	if s.BlockProducersBitSet != 0 {
-		cpy.BlockProducersBitSet = s.BlockProducersBitSet
-	}
-
 	for block, v := range s.Recents {
 		cpy.Recents[block] = v
 	}
@@ -267,12 +262,13 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 					return nil, err
 				}
 
+				indices := extraData.BlockProducersBitSet.Indices()
 				oldLimit := len(snap.validators())/2 + 1
 				var newLimit int
 				// After Tripp, list of block producers is retrieved from the
 				// field BlockProducer, instead of field CheckpointValidators.
 				if isAaron && extraData.BlockProducersBitSet != 0 {
-					newLimit = len(extraData.BlockProducersBitSet.Indices())/2 + 1
+					newLimit = len(indices)/2 + 1
 				} else if isTripp && len(extraData.BlockProducers) != 0 {
 					newLimit = len(extraData.BlockProducers)/2 + 1
 				} else {
@@ -284,14 +280,12 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 					}
 				}
 
+				// After Aaron, block producer list in snapshot is
+				// reconstructed from bit set and validator candidate list.
 				if isAaron && extraData.BlockProducersBitSet != 0 {
 					if len(extraData.CheckpointValidators) != 0 {
 						snap.ValidatorsWithBlsPub = extraData.CheckpointValidators
 					}
-					// After Aaron, block producer list in snapshot is
-					// reconstructed from bit set and validator candidate list.
-					snap.BlockProducersBitSet = extraData.BlockProducersBitSet
-					indices := extraData.BlockProducersBitSet.Indices()
 					blockProducers := make([]common.Address, len(indices))
 					for _, idx := range indices {
 						blockProducers = append(blockProducers, snap.ValidatorsWithBlsPub[idx].Address)
