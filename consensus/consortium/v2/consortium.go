@@ -843,13 +843,7 @@ func (c *Consortium) Prepare(chain consensus.ChainHeaderReader, header *types.He
 			// in header, block producer bit set is constructed to store the
 			// indices of block producer in validator candidate lists.
 			if c.chainConfig.IsAaron(header.Number) {
-				for _, validator := range blockProducers {
-					for idx, candidate := range checkpointValidators {
-						if validator == candidate.Address {
-							extraData.BlockProducersBitSet.SetBit(idx)
-						}
-					}
-				}
+				extraData.BlockProducersBitSet = encodeValidatorBitSet(checkpointValidators, blockProducers)
 			} else {
 				extraData.BlockProducers = blockProducers
 			}
@@ -1034,15 +1028,8 @@ func (c *Consortium) Finalize(chain consensus.ChainHeaderReader, header *types.H
 		// their amounts, check with stored data in header
 		if c.IsTrippEffective(chain, header) {
 			if c.chainConfig.IsAaron(header.Number) {
-				var blockProducersBitSet finality.BitSet
-				for _, validator := range blockProducers {
-					for idx, candidate := range checkpointValidators {
-						if validator == candidate.Address {
-							blockProducersBitSet.SetBit(idx)
-						}
-					}
-				}
-				if blockProducersBitSet != extraData.BlockProducersBitSet {
+				bitSet := encodeValidatorBitSet(checkpointValidators, blockProducers)
+				if bitSet != extraData.BlockProducersBitSet {
 					return errMismatchingValidators
 				}
 			} else {
@@ -1663,6 +1650,27 @@ func encodeSigHeader(w io.Writer, header *types.Header, chainId *big.Int) {
 	if err := rlp.Encode(w, enc); err != nil {
 		panic("can't encode: " + err.Error())
 	}
+}
+
+func encodeValidatorBitSet(validatorCandidates []finality.ValidatorWithBlsPub, blockProducers []common.Address) finality.BitSet {
+	var bitSet finality.BitSet
+	for _, validator := range blockProducers {
+		for idx, candidate := range validatorCandidates {
+			if validator == candidate.Address {
+				bitSet.SetBit(idx)
+			}
+		}
+	}
+	return bitSet
+}
+
+func decodeValidatorBitSet(bitSet finality.BitSet, validatorCandidates []finality.ValidatorWithBlsPub) []common.Address {
+	indices := bitSet.Indices()
+	blockProducers := make([]common.Address, len(indices))
+	for i, idx := range indices {
+		blockProducers[i] = validatorCandidates[idx].Address
+	}
+	return blockProducers
 }
 
 // getLastCheckpointHeader returns the last checkpoint header, this function is used as a fallback when we cannot

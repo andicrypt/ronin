@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/big"
 	mrand "math/rand"
+	"sort"
 	"testing"
 	"time"
 
@@ -2353,5 +2354,48 @@ func TestIsTrippEffective(t *testing.T) {
 	// this header must be Tripp effective
 	if !c.IsTrippEffective(chain, header) {
 		t.Error("fail test Tripp effective")
+	}
+}
+
+func TestEncodeDecodeValidatorBitSet(t *testing.T) {
+	candidates := make([]finality.ValidatorWithBlsPub, 10)
+	producers := make([]common.Address, 0)
+	for i := 0; i < 10; i++ {
+		secret, err := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		addr := crypto.PubkeyToAddress(secret.PublicKey)
+		candidates[i] = finality.ValidatorWithBlsPub{Address: addr}
+		if i%2 == 0 {
+			producers = append(producers, addr)
+		}
+	}
+	sort.Sort(finality.CheckpointValidatorAscending(candidates))
+	enc := encodeValidatorBitSet(candidates, producers)
+
+	// Test encode bit set
+	sort.Sort(validatorsAscending(producers))
+	indices := enc.Indices()
+	if len(indices) != 5 {
+		t.Fatalf("mismatch validator1, %v", indices)
+	}
+	var i int = 0
+	for _, idx := range indices {
+		if producers[i] != candidates[idx].Address {
+			t.Fatal("mismatch validator")
+		}
+		i += 1
+	}
+
+	// Test decode bit set
+	dec := decodeValidatorBitSet(enc, candidates)
+	if len(dec) != 5 {
+		t.Fatal("mismatch validator")
+	}
+	for i := 0; i < 5; i++ {
+		if producers[i] != dec[i] {
+			t.Fatal("mismatch validator")
+		}
 	}
 }
