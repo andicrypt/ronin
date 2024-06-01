@@ -255,18 +255,27 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 			shadowForkBlock := chain.Config().ShadowForkBlock.Uint64()
 			if shadowForkBlock == number+1 {
 				var validatorWithBlsPub []finality.ValidatorWithBlsPub
+				var blockProducers []common.Address
 				rawAddresses := shadow.ShadowSwitchConfig.NewValidatorConfigs
 				for _, rawAddress := range rawAddresses {
 					blsKey, err := blst.PublicKeyFromBytes(common.Hex2Bytes(rawAddress.Pubkey))
 					if err != nil {
 						return nil, fmt.Errorf("invalid bls key, key %x, err %s", rawAddress.Pubkey, err)
 					}
-					validatorWithBlsPub = append(validatorWithBlsPub, finality.ValidatorWithBlsPub{
+					blockProducers = append(blockProducers, common.HexToAddress(rawAddress.ConsensusAddr))
+					val := finality.ValidatorWithBlsPub{
 						Address:      common.HexToAddress(rawAddress.ConsensusAddr),
 						BlsPublicKey: blsKey,
-					})
+					}
+					if isTripp {
+						val.Weight = 1
+					}
+					validatorWithBlsPub = append(validatorWithBlsPub, val)
 				}
 
+				if isTripp {
+					snap.BlockProducers = blockProducers
+				}
 				snap.ValidatorsWithBlsPub = validatorWithBlsPub
 				snap.Validators = nil
 				continue
