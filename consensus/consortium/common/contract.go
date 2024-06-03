@@ -502,13 +502,24 @@ func ApplyTransaction(msg types.Message, opts *ApplyTransactOpts) (err error) {
 		// The system transaction is the transaction that have the receiver is ConsortiumV2Contracts
 		actualTx := (*receivedTxs)[0]
 		if !bytes.Equal(signer.Hash(actualTx).Bytes(), expectedHash.Bytes()) {
-			return fmt.Errorf("expected tx hash %v, get %v, nonce %d, to %s, value %s, gas %d, gasPrice %s, data %s", expectedHash.String(), actualTx.Hash().String(),
+			return fmt.Errorf(`expected tx hash %v, get %v, 
+			expected: nonce %d, chainid %d, to %s, value %s, gas %d, gasPrice %s, data %s
+			actual: nonce %d, chainid %d, to %s, value %s, gas %d, gasPrice %s, data %s`, expectedHash.String(), actualTx.Hash().String(),
 				expectedTx.Nonce(),
+				expectedTx.ChainId(),
 				expectedTx.To().String(),
 				expectedTx.Value().String(),
 				expectedTx.Gas(),
 				expectedTx.GasPrice().String(),
 				hex.EncodeToString(expectedTx.Data()),
+
+				actualTx.Nonce(),
+				actualTx.ChainId(),
+				actualTx.To().String(),
+				actualTx.Value().String(),
+				actualTx.Gas(),
+				actualTx.GasPrice().String(),
+				hex.EncodeToString(actualTx.Data()),
 			)
 		}
 		expectedTx = actualTx
