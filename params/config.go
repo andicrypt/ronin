@@ -23,6 +23,7 @@ import (
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -289,6 +290,7 @@ var (
 		},
 		// TODO: fill this
 		TrippBlock: common.Big0,
+		AaronBlock: common.Big0,
 	}
 
 	RoninTestnetBlacklistContract                  = common.HexToAddress("0xF53EED5210c9cF308abFe66bA7CF14884c95A8aC")
@@ -340,6 +342,7 @@ var (
 		},
 		// TODO: fill this
 		TrippBlock: common.Big0,
+		AaronBlock: common.Big0,
 	}
 
 	// GoerliTrustedCheckpoint contains the light client trusted checkpoint for the Görli test network.
@@ -561,6 +564,7 @@ type ChainConfig struct {
 	MikoBlock   *big.Int `json:"mikoBlock,omitempty"`   // Miko switch block (nil = no fork, 0 = already on activated)
 	TrippBlock  *big.Int `json:"trippBlock,omitempty"`  // Tripp switch block (nil = no fork, 0 = already on activated)
 	TrippPeriod *big.Int `json:"trippPeriod,omitempty"` // The period number at Tripp fork block.
+	AaronBlock  *big.Int `json:"aaronBlock,omitempty"`  // Aaron switch block (nil = no fork, 0 = already on activated)
 
 	BlacklistContractAddress           *common.Address `json:"blacklistContractAddress,omitempty"`           // Address of Blacklist Contract (nil = no blacklist)
 	FenixValidatorContractAddress      *common.Address `json:"fenixValidatorContractAddress,omitempty"`      // Address of Ronin Contract in the Fenix hardfork (nil = no blacklist)
@@ -570,11 +574,12 @@ type ChainConfig struct {
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
 
 	// Various consensus engines
-	Ethash                 *EthashConfig          `json:"ethash,omitempty"`
-	Clique                 *CliqueConfig          `json:"clique,omitempty"`
-	Consortium             *ConsortiumConfig      `json:"consortium,omitempty"`
-	ConsortiumV2Contracts  *ConsortiumV2Contracts `json:"consortiumV2Contracts"`
-	RoninTrustedOrgUpgrade *ContractUpgrade       `json:"roninTrustedOrgUpgrade"`
+	Ethash                      *EthashConfig          `json:"ethash,omitempty"`
+	Clique                      *CliqueConfig          `json:"clique,omitempty"`
+	Consortium                  *ConsortiumConfig      `json:"consortium,omitempty"`
+	ConsortiumV2Contracts       *ConsortiumV2Contracts `json:"consortiumV2Contracts"`
+	RoninTrustedOrgUpgrade      *ContractUpgrade       `json:"roninTrustedOrgUpgrade"`
+	TransparentProxyCodeUpgrade *ContractCodeUpgrade   `json:"transparentProxyCodeUpgrade"`
 }
 
 type ContractUpgrade struct {
@@ -588,6 +593,12 @@ func (c *ChainConfig) GetChainID(blockNumber *big.Int) *big.Int {
 	} else {
 		return c.ChainID
 	}
+}
+
+type ContractCodeUpgrade struct {
+	AxieAddress common.Address `json:"axieAddress"`
+	LandAddress common.Address `json:"landAddress"`
+	Code        hexutil.Bytes  `json:"code"`
 }
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
@@ -682,12 +693,12 @@ func (c *ChainConfig) String() string {
 		whiteListDeployerContractV2Address = *c.WhiteListDeployerContractV2Address
 	}
 
-	chainConfigFmt := "{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v "
-	chainConfigFmt += "Petersburg: %v Istanbul: %v, Odysseus: %v, Fenix: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, "
+	chainConfigFmt := "{ChainID: %v, Homestead: %v, DAO: %v, DAOSupport: %v, EIP150: %v, EIP155: %v, EIP158: %v, Byzantium: %v, Constantinople: %v, "
+	chainConfigFmt += "Petersburg: %v, Istanbul: %v, Odysseus: %v, Fenix: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, "
 	chainConfigFmt += "Engine: %v, Blacklist Contract: %v, Fenix Validator Contract: %v, ConsortiumV2: %v, ConsortiumV2.RoninValidatorSet: %v, "
 	chainConfigFmt += "ConsortiumV2.SlashIndicator: %v, ConsortiumV2.StakingContract: %v, Puffy: %v, Buba: %v, Olek: %v, Shillin: %v, Antenna: %v, "
 	chainConfigFmt += "ConsortiumV2.ProfileContract: %v, ConsortiumV2.FinalityTracking: %v, whiteListDeployerContractV2Address: %v, Miko: %v, Tripp: %v,"
-	chainConfigFmt += "TrippPeriod: %v}"
+	chainConfigFmt += "TrippPeriod: %v, Aaron: %v}"
 
 	return fmt.Sprintf(chainConfigFmt,
 		c.ChainID,
@@ -725,6 +736,7 @@ func (c *ChainConfig) String() string {
 		c.MikoBlock,
 		c.TrippBlock,
 		c.TrippPeriod,
+		c.AaronBlock,
 	)
 }
 
@@ -856,6 +868,11 @@ func (c *ChainConfig) IsMiko(num *big.Int) bool {
 // IsTripp returns whether the num is equals to or larger than the tripp fork block.
 func (c *ChainConfig) IsTripp(num *big.Int) bool {
 	return isForked(c.TrippBlock, num)
+}
+
+// IsAaron returns whether the num is equals to or larger than the aaron fork block.
+func (c *ChainConfig) IsAaron(num *big.Int) bool {
+	return isForked(c.AaronBlock, num)
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -1001,6 +1018,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.TrippBlock, newcfg.TrippBlock, head) {
 		return newCompatError("Tripp fork block", c.TrippBlock, newcfg.TrippBlock)
 	}
+	if isForkIncompatible(c.AaronBlock, newcfg.AaronBlock, head) {
+		return newCompatError("Aaron fork block", c.AaronBlock, newcfg.AaronBlock)
+	}
 	return nil
 }
 
@@ -1070,7 +1090,7 @@ type Rules struct {
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
 	IsBerlin, IsLondon                                      bool
 	IsOdysseusFork, IsFenix, IsConsortiumV2, IsAntenna      bool
-	IsMiko                                                  bool
+	IsMiko, IsTripp, IsAaron                                bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -1096,5 +1116,7 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsConsortiumV2:   c.IsConsortiumV2(num),
 		IsAntenna:        c.IsAntenna(num),
 		IsMiko:           c.IsMiko(num),
+		IsTripp:          c.IsTripp(num),
+		IsAaron:          c.IsAaron(num),
 	}
 }
