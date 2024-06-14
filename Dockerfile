@@ -4,7 +4,7 @@ FROM golang:1.20.10-alpine3.18@sha256:0d6e012ec44ed21993ee2ccf05839844f13347165c
 RUN apk add --no-cache make gcc musl-dev linux-headers git libstdc++-dev
 
 COPY . /opt
-RUN cd /opt && make ronin
+RUN cd /opt && make ronin-race-detector
 
 # Pull Geth into a second stage deploy alpine container
 FROM alpine:3.18@sha256:48d9183eb12a05c99bcc0bf44a003607b8e941e1d4f41f9ad12bdcc4b5672f86
