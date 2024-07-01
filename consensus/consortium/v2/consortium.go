@@ -512,9 +512,9 @@ func (c *Consortium) verifyCascadingFields(chain consensus.ChainHeaderReader, he
 	if err != nil {
 		return err
 	}
-	// if err = c.verifyHeaderTime(header, parent, snap); err != nil {
-	// 	return err
-	// }
+	if err = c.verifyHeaderTime(header, parent, snap); err != nil {
+		return err
+	}
 
 	// All basic checks passed, verify the seal and return
 	return c.verifySeal(chain, header, parents, snap)
@@ -988,11 +988,7 @@ func (c *Consortium) Prepare(chain consensus.ChainHeaderReader, header *types.He
 		return consensus.ErrUnknownAncestor
 	}
 
-	if chain.Config().IsShadow(header.Number) {
-		header.Time = c.computeHeaderTime(header, parent, snap) + 86400*2
-	} else {
-		header.Time = c.computeHeaderTime(header, parent, snap)
-	}
+	header.Time = c.computeHeaderTime(header, parent, snap)
 	return nil
 }
 
