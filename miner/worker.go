@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/consortium"
+	v2 "github.com/ethereum/go-ethereum/consensus/consortium/v2"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -907,7 +908,12 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	// block with transactions to be produced and abort the
 	// empty block producer.
 	if w.chainConfig.IsBuba(w.current.header.Number) {
-		duration := time.Until(time.Unix(int64(w.current.header.Time), 0)) - w.config.BlockProduceLeftOver
+		var duration time.Duration
+		if w.chainConfig.IsShadow(w.current.header.Number) {
+			duration = time.Until(time.Unix(int64(w.current.header.Time - v2.TWO_DAY_IN_SECONDS), 0)) - w.config.BlockProduceLeftOver
+		} else {
+			duration = time.Until(time.Unix(int64(w.current.header.Time), 0)) - w.config.BlockProduceLeftOver	
+		}
 		timer = time.NewTimer(duration)
 	}
 

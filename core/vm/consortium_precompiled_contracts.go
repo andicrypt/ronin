@@ -486,7 +486,7 @@ func (c *consortiumVerifyHeaders) unpack(smcAbi abi.ABI, v interface{}, input []
 }
 
 func (c *consortiumVerifyHeaders) getSigner(header types.BlockHeader) (common.Address, error) {
-	if header.Number == nil || header.Timestamp > uint64(time.Now().Unix()) || len(header.ExtraData) < crypto.SignatureLength {
+	if header.Number == nil || (!c.evm.chainConfig.IsShadow(header.Number) && header.Timestamp > uint64(time.Now().Unix())) || len(header.ExtraData) < crypto.SignatureLength {
 		return common.Address{}, errors.New("invalid header")
 	}
 	signature := header.ExtraData[len(header.ExtraData)-crypto.SignatureLength:]
