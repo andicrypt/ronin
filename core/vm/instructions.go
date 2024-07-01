@@ -458,11 +458,7 @@ func opCoinbase(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([
 }
 
 func opTimestamp(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	if interpreter.evm.Context.Time > uint64(1719845203) {
-		scope.Stack.push(new(uint256.Int).SetUint64(interpreter.evm.Context.Time + 86400*2))
-	} else {
-		scope.Stack.push(new(uint256.Int).SetUint64(interpreter.evm.Context.Time))
-	}
+	scope.Stack.push(new(uint256.Int).SetUint64(interpreter.evm.Context.Time))
 	return nil, nil
 }
 
