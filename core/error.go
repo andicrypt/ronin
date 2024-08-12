@@ -128,6 +128,9 @@ var (
 	// ErrMissingBlobHashes is returned if a blob transaction has no blob hashes.
 	ErrMissingBlobHashes = errors.New("blob transaction missing blob hashes")
 
+	// ErrMissingBlobFeeCap is returned if a blob transaction has no blob fee
+	ErrMissingBlobFeeCap = errors.New("blob transaction missing blob fee cap")
+
 	// ErrBlobTxCreate is returned if a blob transaction has no explicit to field.
 	ErrBlobTxCreate = errors.New("blob transaction of type create")
 )
