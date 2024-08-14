@@ -73,6 +73,12 @@ new_validator_configs:
     commission_rate: "1000"
     pubkey: "a9e0e6bcc0ce5128000c5cef2cf28f67f8fe37383c025fe993369ae8026c394fd351f40638c2669c98df6027a52e7c83"
     governor_addr: "0x947AB99ad90302b5ec1840c9b5CF4205554C72af"
+  - candidate_admin: "0x23DdE6c8f37Bc709C3EE070536d0B6ef9e6c9e7C"
+    consensus_addr: "0x2a3A855BaC121DB727E856377c8c7DF59d9FeD51"
+    treasury_addr: "0x23DdE6c8f37Bc709C3EE070536d0B6ef9e6c9e7C"
+    commission_rate: "1000"
+    pubkey: "8f608f92f151e2be60776319b6edf4c068fe8949d6cb87f4c423d2fbfefb9d2d3de6e50faac11e5c22d5c7acb3b6917a"
+    governor_addr: "0x6a0397bDF0275Ad0201174afc05D3CFa27A5e1f1"
 
 
 # number of period of hardfork - 3
