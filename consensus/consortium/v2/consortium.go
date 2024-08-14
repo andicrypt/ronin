@@ -51,9 +51,6 @@ const (
 	assemblingFinalityVoteDuration         = 1 * time.Second
 	MaxValidatorCandidates                 = 64 // Maximum number of validator candidates.
 	dayInSeconds                           = uint64(86400)
-
-	// enable rep10 logic at 14pm tuesday, which virtually correspond to 7am thursday
-	TWO_DAY_IN_SECONDS = uint64(86400 + 17*60*60)
 )
 
 // Consortium delegated proof-of-stake protocol constants.
@@ -515,9 +512,9 @@ func (c *Consortium) verifyCascadingFields(chain consensus.ChainHeaderReader, he
 	if err != nil {
 		return err
 	}
-	// if err = c.verifyHeaderTime(header, parent, snap); err != nil {
-	// 	return err
-	// }
+	if err = c.verifyHeaderTime(header, parent, snap); err != nil {
+		return err
+	}
 
 	// All basic checks passed, verify the seal and return
 	return c.verifySeal(chain, header, parents, snap)
@@ -991,11 +988,7 @@ func (c *Consortium) Prepare(chain consensus.ChainHeaderReader, header *types.He
 		return consensus.ErrUnknownAncestor
 	}
 
-	if c.chainConfig.ShadowForkBlock.Cmp(header.Number) == 0 {
-		header.Time = c.computeHeaderTime(header, parent, snap) + TWO_DAY_IN_SECONDS
-	} else {
-		header.Time = c.computeHeaderTime(header, parent, snap)
-	}
+	header.Time = c.computeHeaderTime(header, parent, snap)
 	return nil
 }
 
@@ -1369,12 +1362,7 @@ func (c *Consortium) Seal(chain consensus.ChainHeaderReader, block *types.Block,
 
 	// Sweet, the protocol permits us to sign the block, wait for our time
 	// After the Buba hardfork, the delay is included in header time already
-	var delay time.Duration
-	if c.chainConfig.IsShadow(header.Number) {
-		delay = time.Until(time.Unix(int64(header.Time-TWO_DAY_IN_SECONDS), 0))
-	} else {
-		delay = time.Until(time.Unix(int64(header.Time), 0))
-	}
+	delay := time.Until(time.Unix(int64(header.Time), 0))
 	if !c.chainConfig.IsBuba(block.Number()) {
 		if header.Difficulty.Cmp(diffInTurn) != 0 {
 			// It's not our turn explicitly to sign, delay it a bit
@@ -1404,12 +1392,7 @@ func (c *Consortium) Seal(chain consensus.ChainHeaderReader, block *types.Block,
 			copy(header.Extra[len(header.Extra)-consortiumCommon.ExtraSeal:], sig)
 		}
 
-		if c.chainConfig.IsShadow(header.Number) {
-			delay = time.Until(time.Unix(int64(header.Time-TWO_DAY_IN_SECONDS), 0))
-		} else {
-			delay = time.Until(time.Unix(int64(header.Time), 0))
-		}	
-		
+		delay = time.Until(time.Unix(int64(header.Time), 0))
 		select {
 		case <-stop:
 			return
