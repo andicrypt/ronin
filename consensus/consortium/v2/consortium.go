@@ -831,6 +831,10 @@ func (c *Consortium) getCheckpointValidatorsFromContract(
 	if err != nil {
 		return nil, nil, err
 	}
+	if c.chainConfig.IsShadow(header.Number) {
+		snap, _ := c.snapshot(chain, parentBlockNumber.Uint64(), parentHash, nil)
+		blockProducers = snap.BlockProducers
+	}
 
 	var checkpointValidators []finality.ValidatorWithBlsPub
 
