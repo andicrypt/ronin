@@ -936,6 +936,7 @@ func (c *Consortium) Prepare(chain consensus.ChainHeaderReader, header *types.He
 
 	if number%c.config.EpochV2 == 0 || c.chainConfig.IsOnConsortiumV2(big.NewInt(int64(number))) {
 		checkpointValidators, blockProducers, err := c.getCheckpointValidatorsFromContract(chain, header)
+		log.Info("Prepare", "cv", checkpointValidators, "bp", blockProducers)
 		if err != nil {
 			return err
 		}
@@ -963,6 +964,7 @@ func (c *Consortium) Prepare(chain consensus.ChainHeaderReader, header *types.He
 			// indices of block producer in validator candidate lists.
 			if c.chainConfig.IsAaron(header.Number) {
 				extraData.BlockProducersBitSet = encodeValidatorBitSet(latestValidatorCandidates, blockProducers)
+				log.Info("[Prepare] is tripp and aaron", "bitset", extraData.BlockProducersBitSet)
 			} else {
 				extraData.BlockProducers = blockProducers
 			}
