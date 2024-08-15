@@ -291,7 +291,7 @@ func (s londonSigner) Hash(tx *Transaction) common.Hash {
 	return prefixedRlpHash(
 		tx.Type(),
 		[]interface{}{
-			s.chainId,
+			tx.ChainId(),
 			tx.Nonce(),
 			tx.GasTipCap(),
 			tx.GasFeeCap(),
@@ -374,13 +374,13 @@ func (s eip2930Signer) Hash(tx *Transaction) common.Hash {
 			tx.To(),
 			tx.Value(),
 			tx.Data(),
-			s.chainId, uint(0), uint(0),
+			tx.ChainId(), uint(0), uint(0),
 		})
 	case AccessListTxType:
 		return prefixedRlpHash(
 			tx.Type(),
 			[]interface{}{
-				s.chainId,
+				tx.ChainId(),
 				tx.Nonce(),
 				tx.GasPrice(),
 				tx.Gas(),
@@ -468,7 +468,7 @@ func (s MikoSigner) Hash(tx *Transaction) common.Hash {
 		return prefixedRlpHash(
 			tx.Type(),
 			[]interface{}{
-				s.chainId,
+				tx.ChainId(),
 				tx.Nonce(),
 				tx.GasTipCap(),
 				tx.GasFeeCap(),
