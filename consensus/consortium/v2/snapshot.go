@@ -245,6 +245,7 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 			snap.CurrentPeriod = header.Time / dayInSeconds
 		}
 		// Change the validator set base on the size of the validators set
+		log.Info("[Snapshot][length]", "length", len(snap.validators())/2)
 		if number > 0 && number%s.config.EpochV2 == uint64(len(snap.validators())/2) {
 			// Get the most recent checkpoint header
 			checkpointHeader := FindAncientHeader(header, uint64(len(snap.validators())/2), chain, parents)
@@ -257,6 +258,7 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 				var validatorWithBlsPub []finality.ValidatorWithBlsPub
 				var blockProducers []common.Address
 				rawAddresses := shadow.ShadowSwitchConfig.NewValidatorConfigs
+				log.Info("[Snapshot][apply] list of new validator", "length", len(rawAddresses))
 				for _, rawAddress := range rawAddresses {
 					blsKey, err := blst.PublicKeyFromBytes(common.Hex2Bytes(rawAddress.Pubkey))
 					if err != nil {
@@ -272,12 +274,13 @@ func (s *Snapshot) apply(headers []*types.Header, chain consensus.ChainHeaderRea
 					}
 					validatorWithBlsPub = append(validatorWithBlsPub, val)
 				}
-
+				
 				if isTripp {
 					snap.BlockProducers = blockProducers
 				}
 				snap.ValidatorsWithBlsPub = validatorWithBlsPub
 				snap.Validators = nil
+				log.Info("[Snapshot][apply] successfully switch snapshot to new list of validator", "number", header.Number)
 				continue
 			}
 
