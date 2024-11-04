@@ -27,11 +27,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
-	gokzg4844 "github.com/crate-crypto/go-kzg-4844"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
+	"github.com/ethereum/go-ethereum/internal/testrand"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/holiman/uint256"
 
@@ -3893,36 +3892,6 @@ func TestGetBlobSidecars(t *testing.T) {
 	}
 }
 
-func randFieldElement() [32]byte {
-	bytes := make([]byte, 32)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		panic("failed to get random field element")
-	}
-	var r fr.Element
-	r.SetBytes(bytes)
-
-	return gokzg4844.SerializeScalar(r)
-}
-
-// randBlob generates a random blob with corresponding commitment and proof
-func randBlob() (*kzg4844.Blob, *kzg4844.Commitment, *kzg4844.Proof) {
-	var blob kzg4844.Blob
-	for i := 0; i < len(blob); i += gokzg4844.SerializedScalarSize {
-		fieldElementBytes := randFieldElement()
-		copy(blob[i:i+gokzg4844.SerializedScalarSize], fieldElementBytes[:])
-	}
-	commitment, err := kzg4844.BlobToCommitment(&blob)
-	if err != nil {
-		panic(err)
-	}
-	proof, err := kzg4844.ComputeBlobProof(&blob, commitment)
-	if err != nil {
-		panic(err)
-	}
-	return &blob, &commitment, &proof
-}
-
 func TestInsertChainWithSidecars(t *testing.T) {
 	privateKey, _ := crypto.GenerateKey()
 	address := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -3946,7 +3915,7 @@ func TestInsertChainWithSidecars(t *testing.T) {
 	signer := types.NewCancunSigner(chainConfig.ChainID)
 
 	// 1. Insert block with sidecars
-	blob, commitment, proof := randBlob()
+	blob, commitment, proof := testrand.RandBlobSidecars()
 	sidecars := []*types.BlobTxSidecar{
 		{
 			Blobs:       []kzg4844.Blob{*blob, *blob},
@@ -4248,7 +4217,7 @@ func TestSidecarsPruning(t *testing.T) {
 	signer := types.NewCancunSigner(chainConfig.ChainID)
 
 	// Insert BlobPrunePeriod blocks
-	blob, commitment, proof := randBlob()
+	blob, commitment, proof := testrand.RandBlobSidecars()
 	blobHash := kzg4844.CalcBlobHashV1(crypto.NewKeccakState(), commitment)
 	sidecar := []*types.BlobTxSidecar{
 		{

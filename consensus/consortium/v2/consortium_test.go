@@ -15,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
-	gokzg4844 "github.com/crate-crypto/go-kzg-4844"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	consortiumCommon "github.com/ethereum/go-ethereum/consensus/consortium/common"
@@ -30,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/bls/blst"
 	blsCommon "github.com/ethereum/go-ethereum/crypto/bls/common"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
+	"github.com/ethereum/go-ethereum/internal/testrand"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/hashicorp/golang-lru/arc/v2"
@@ -2537,36 +2536,6 @@ func TestEncodeDecodeValidatorBitSet(t *testing.T) {
 	}
 }
 
-func randFieldElement() [32]byte {
-	bytes := make([]byte, 32)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		panic("failed to get random field element")
-	}
-	var r fr.Element
-	r.SetBytes(bytes)
-
-	return gokzg4844.SerializeScalar(r)
-}
-
-// randBlob generates a random blob with corresponding commitment and proof
-func randBlob() (*kzg4844.Blob, *kzg4844.Commitment, *kzg4844.Proof) {
-	var blob kzg4844.Blob
-	for i := 0; i < len(blob); i += gokzg4844.SerializedScalarSize {
-		fieldElementBytes := randFieldElement()
-		copy(blob[i:i+gokzg4844.SerializedScalarSize], fieldElementBytes[:])
-	}
-	commitment, err := kzg4844.BlobToCommitment(&blob)
-	if err != nil {
-		panic(err)
-	}
-	proof, err := kzg4844.ComputeBlobProof(&blob, commitment)
-	if err != nil {
-		panic(err)
-	}
-	return &blob, &commitment, &proof
-}
-
 // randTxsWithBlobs generates a random tx with random blobs, with corresponding sidecar
 func randTxsWithBlobs(numBlobs int) (*types.Transaction, *types.BlobTxSidecar) {
 	var blobs []kzg4844.Blob
@@ -2575,7 +2544,7 @@ func randTxsWithBlobs(numBlobs int) (*types.Transaction, *types.BlobTxSidecar) {
 	var proofs []kzg4844.Proof
 	hasher := sha256.New()
 	for i := 0; i < numBlobs; i++ {
-		blob, commitment, proof := randBlob()
+		blob, commitment, proof := testrand.RandBlobSidecars()
 		blobs = append(blobs, *blob)
 		commitments = append(commitments, *commitment)
 		blobHashes = append(blobHashes, kzg4844.CalcBlobHashV1(hasher, commitment))
