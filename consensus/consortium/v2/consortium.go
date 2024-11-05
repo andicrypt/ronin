@@ -228,9 +228,19 @@ func (c *Consortium) VerifyBlobHeader(block *types.Block, sidecars *[]*types.Blo
 	if err := c.verifyVersionHash(block, *sidecars); err != nil {
 		return err
 	}
-	for _, sidecar := range *sidecars {
-		if err := c.verifySidecar(*sidecar); err != nil {
+
+	// If the number of sidecars is greater than 1, we can
+	// do batch verify blob data proof, which reduces the number
+	// of pairing operation to one.
+	if len(*sidecars) > 1 {
+		if err := c.verifySidecarBatch(*sidecars); err != nil {
 			return err
+		}
+	} else {
+		for _, sidecar := range *sidecars {
+			if err := c.verifySidecar(*sidecar); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -283,6 +293,30 @@ func (c *Consortium) verifySidecar(sidecar types.BlobTxSidecar) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// verifySidecarBatch batch verifies the validity of sidecar by checking that
+// the list of blob data corresponds to the list of provided commitments.
+func (c *Consortium) verifySidecarBatch(sidecars []*types.BlobTxSidecar) error {
+	var (
+		gblobs       []kzg4844.Blob
+		gcommitments []kzg4844.Commitment
+		gproofs      []kzg4844.Proof
+	)
+	for i := range sidecars {
+		if len(sidecars[i].Blobs) != len(sidecars[i].Commitments) || len(sidecars[i].Commitments) != len(sidecars[i].Proofs) {
+			return fmt.Errorf("mismatching number of blobs, commitments, and proofs. blobs: %d, commitments: %d, proofs: %d",
+				len(sidecars[i].Blobs), len(sidecars[i].Commitments), len(sidecars[i].Proofs))
+		}
+		gblobs = append(gblobs, sidecars[i].Blobs...)
+		gcommitments = append(gcommitments, sidecars[i].Commitments...)
+		gproofs = append(gproofs, sidecars[i].Proofs...)
+	}
+	if err := kzg4844.VerifyBlobProofBatch(gblobs, gcommitments, gproofs); err != nil {
+		return err
+	}
+
 	return nil
 }
 
