@@ -96,3 +96,20 @@ func gokzgVerifyBlobProof(blob *Blob, commitment Commitment, proof Proof) error 
 
 	return context.VerifyBlobKZGProof((*gokzg4844.Blob)(blob), (gokzg4844.KZGCommitment)(commitment), (gokzg4844.KZGProof)(proof))
 }
+
+// gokzgVerifyBlobProofBatch batch verifies that the list of blob data corresponds to the
+// list of provided commitments.
+func gokzgVerifyBlobProofBatch(blobs []Blob, commitments []Commitment, proofs []Proof) error {
+	var (
+		gblobs      []gokzg4844.Blob
+		gcommiments []gokzg4844.KZGCommitment
+		gproofs     []gokzg4844.KZGProof
+	)
+	for i := 0; i < len(blobs); i++ {
+		gblobs = append(gblobs, gokzg4844.Blob(blobs[i]))
+		gcommiments = append(gcommiments, gokzg4844.KZGCommitment(commitments[i]))
+		gproofs = append(gproofs, gokzg4844.KZGProof(proofs[i]))
+	}
+
+	return context.VerifyBlobKZGProofBatch(gblobs, gcommiments, gproofs)
+}

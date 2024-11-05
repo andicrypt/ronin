@@ -175,6 +175,15 @@ func VerifyBlobProof(blob *Blob, commitment Commitment, proof Proof) error {
 	return err
 }
 
+// VerifyBlobProofBatch batch verifies that the list of blob data corresponds to the
+// list of provided commitments.
+func VerifyBlobProofBatch(blobs []Blob, commitments []Commitment, proofs []Proof) error {
+	if useCKZG.Load() {
+		return ckzgVerifyBlobProofBatch(blobs, commitments, proofs)
+	}
+	return gokzgVerifyBlobProofBatch(blobs, commitments, proofs)
+}
+
 // CalcBlobHashV1 calculates the 'versioned blob hash' of a commitment.
 // The given hasher must be a sha256 hash instance, otherwise the result will be invalid!
 func CalcBlobHashV1(hasher hash.Hash, commit *Commitment) (vh [32]byte) {

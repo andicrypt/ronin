@@ -94,6 +94,48 @@ func testKZGWithBlob(t *testing.T, ckzg bool) {
 	}
 }
 
+func TestCKZGWithBlobBatch(t *testing.T)  { testKZGWithBlobBatch(t, true) }
+func TestGoKZGWithBlobBatch(t *testing.T) { testKZGWithBlobBatch(t, false) }
+func testKZGWithBlobBatch(t *testing.T, ckzg bool) {
+	if ckzg && !ckzgAvailable {
+		t.Skip("CKZG unavailable in this test build")
+	}
+	defer func(old bool) { useCKZG.Store(old) }(useCKZG.Load())
+	useCKZG.Store(ckzg)
+
+	var (
+		nBlobs       = 18
+		gblobs       []Blob
+		gcommitments []Commitment
+		gproofs      []Proof
+	)
+
+	for i := 0; i < nBlobs; i++ {
+		blob := randBlob()
+		commitment, err := BlobToCommitment(blob)
+		if err != nil {
+			t.Fatalf("failed to create KZG commitment from blob: %v", err)
+		}
+		proof, err := ComputeBlobProof(blob, commitment)
+		if err != nil {
+			t.Fatalf("failed to create KZG proof for blob: %v", err)
+		}
+		gblobs = append(gblobs, *blob)
+		gcommitments = append(gcommitments, commitment)
+		gproofs = append(gproofs, proof)
+	}
+	if err := VerifyBlobProofBatch(gblobs, gcommitments, gproofs); err != nil {
+		t.Fatalf("faled to verify KZG proof for batch blob: %v", err)
+	}
+
+	// tamper with blob data, verification for the blob data
+	// against provided commitments must fail
+	gblobs[nBlobs-1] = *randBlob()
+	if err := VerifyBlobProofBatch(gblobs, gcommitments, gproofs); err == nil {
+		t.Fatalf("must fail to verify KZG proof for batch blob")
+	}
+}
+
 func BenchmarkCKZGBlobToCommitment(b *testing.B)  { benchmarkBlobToCommitment(b, true) }
 func BenchmarkGoKZGBlobToCommitment(b *testing.B) { benchmarkBlobToCommitment(b, false) }
 func benchmarkBlobToCommitment(b *testing.B, ckzg bool) {
@@ -191,6 +233,51 @@ func benchmarkVerifyBlobProof(b *testing.B, ckzg bool) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		VerifyBlobProof(blob, commitment, proof)
+	}
+}
+
+func BenchmarkCKZGVerifyBlobProofBatch(b *testing.B)  { benchmarkVerifyBlobProofBatch(b, true, false) }
+func BenchmarkGoKZGVerifyBlobProofBatch(b *testing.B) { benchmarkVerifyBlobProofBatch(b, false, false) }
+func BenchmarkCKZGVerifyBlobProofBatchManual(b *testing.B) {
+	benchmarkVerifyBlobProofBatch(b, true, true)
+}
+func BenchmarkGoKZGVerifyBlobProofBatchManual(b *testing.B) {
+	benchmarkVerifyBlobProofBatch(b, false, true)
+}
+func benchmarkVerifyBlobProofBatch(b *testing.B, ckzg, manual bool) {
+	if ckzg && !ckzgAvailable {
+		b.Skip("CKZG unavailable in this test build")
+	}
+	defer func(old bool) { useCKZG.Store(old) }(useCKZG.Load())
+	useCKZG.Store(ckzg)
+
+	var (
+		nBlobs       = 18
+		gblobs       []Blob
+		gcommitments []Commitment
+		gproofs      []Proof
+	)
+	for i := 0; i < nBlobs; i++ {
+		blob := randBlob()
+		commitment, _ := BlobToCommitment(blob)
+		proof, _ := ComputeBlobProof(blob, commitment)
+
+		gblobs = append(gblobs, *blob)
+		gcommitments = append(gcommitments, commitment)
+		gproofs = append(gproofs, proof)
+	}
+
+	b.ResetTimer()
+	if manual {
+		for i := 0; i < b.N; i++ {
+			for i := 0; i < nBlobs; i++ {
+				VerifyBlobProof(&gblobs[i], gcommitments[i], gproofs[i])
+			}
+		}
+	} else {
+		for i := 0; i < b.N; i++ {
+			VerifyBlobProofBatch(gblobs, gcommitments, gproofs)
+		}
 	}
 }
 

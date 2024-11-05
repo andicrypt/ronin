@@ -60,3 +60,7 @@ func ckzgComputeBlobProof(blob *Blob, commitment Commitment) (Proof, error) {
 func ckzgVerifyBlobProof(blob *Blob, commitment Commitment, proof Proof) error {
 	panic("unsupported platform")
 }
+
+func ckzgVerifyBlobProofBatch(blobs []Blob, commitments []Commitment, proofs []Proof) error {
+	panic("unsupported platform")
+}

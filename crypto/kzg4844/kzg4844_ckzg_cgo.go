@@ -125,3 +125,25 @@ func ckzgVerifyBlobProof(blob *Blob, commitment Commitment, proof Proof) error {
 	}
 	return nil
 }
+
+func ckzgVerifyBlobProofBatch(blobs []Blob, commitments []Commitment, proofs []Proof) error {
+	ckzgIniter.Do(ckzgInit)
+	var (
+		cblobs       []ckzg4844.Blob
+		ccommitments []ckzg4844.Bytes48
+		cproofs      []ckzg4844.Bytes48
+	)
+	for i := 0; i < len(blobs); i++ {
+		cblobs = append(cblobs, (ckzg4844.Blob)(blobs[i]))
+		ccommitments = append(ccommitments, (ckzg4844.Bytes48)(commitments[i]))
+		cproofs = append(cproofs, (ckzg4844.Bytes48)(proofs[i]))
+	}
+	valid, err := ckzg4844.VerifyBlobKZGProofBatch(cblobs, ccommitments, cproofs)
+	if err != nil {
+		return err
+	}
+	if !valid {
+		return errors.New("invalid proofs")
+	}
+	return nil
+}
